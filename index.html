@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>nCino Certification Lookup</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #11395C 0%, #1e5a8e 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .search-box {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+
+        .search-container {
+            display: flex;
+            gap: 10px;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 15px 20px;
+            font-size: 1.1em;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            transition: border-color 0.3s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #11395C;
+        }
+
+        .search-button {
+            padding: 15px 30px;
+            font-size: 1.1em;
+            font-weight: 600;
+            background: #11395C;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .search-button:hover {
+            background: #0d2a45;
+        }
+
+        .search-button:active {
+            transform: scale(0.98);
+        }
+
+        .search-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .results {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            display: none;
+        }
+
+        .results.visible {
+            display: block;
+        }
+
+        .no-results {
+            text-align: center;
+            color: #999;
+            padding: 40px;
+            font-size: 1.1em;
+        }
+
+        .person-card {
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: box-shadow 0.3s;
+        }
+
+        .person-card:hover {
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .person-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .person-name {
+            font-size: 1.5em;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .person-email {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .person-organization {
+            color: #11395C;
+            font-size: 0.95em;
+            font-weight: 500;
+            margin-top: 5px;
+        }
+
+        .certifications {
+            margin-top: 15px;
+        }
+
+        .cert-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            border-left: 4px solid #11395C;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .cert-badge {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+            flex-shrink: 0;
+        }
+
+        .cert-content {
+            flex: 1;
+        }
+
+        .cert-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .cert-details {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .cert-date {
+            display: flex;
+            align-items: center;
+        }
+
+        .maintenance-status {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 6px;
+            background: #f0f0f0;
+        }
+
+        .status-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .status-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .status-compliant {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-needs-maintenance {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-non-compliant {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .maintenance-deadline {
+            margin-top: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 4px;
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .maintenance-link {
+            display: block;
+            margin-top: 15px;
+            padding: 12px 20px;
+            background: #11395C;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            text-align: center;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+
+        .maintenance-link:hover {
+            background: #0d2a45;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #11395C;
+        }
+
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #11395C;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 600px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+            
+            .person-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .cert-details {
+                flex-direction: column;
+                gap: 5px;
+            }
+
+            .search-container {
+                flex-direction: column;
+            }
+
+            .search-button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎓 nCino Certification Lookup</h1>
+            <p>Search for your certification status</p>
+        </div>
+
+        <div class="search-box">
+            <div class="search-container">
+                <input 
+                    type="text" 
+                    id="searchInput" 
+                    class="search-input" 
+                    placeholder="Enter your name to search..."
+                    autocomplete="off"
+                >
+                <button id="searchButton" class="search-button">Search</button>
+            </div>
+        </div>
+
+        <div class="results" id="results"></div>
+    </div>
+
+    <script>
+        let certificationsData = [];
+        let maintenanceData = [];
+        let badgeImages = {
+            commercial: 'commercial-banking-badge.png',
+            platform: 'platform-badge.png',
+            businessValue: 'business-value-badge.png'
+        };
+        const MAINTENANCE_DEADLINE = 'January 31, 2026';
+        let dataLoaded = false;
+
+        // Load data on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            loadAllData();
+        });
+
+        async function loadAllData() {
+            try {
+                // Load certifications CSV
+                await fetch('certifications.csv')
+                    .then(response => response.text())
+                    .then(csv => {
+                        Papa.parse(csv, {
+                            header: true,
+                            skipEmptyLines: true,
+                            complete: (results) => {
+                                certificationsData = results.data;
+                                console.log('Certifications loaded:', certificationsData.length);
+                            }
+                        });
+                    });
+
+                // Load maintenance CSV
+                await fetch('maintenance.csv')
+                    .then(response => response.text())
+                    .then(csv => {
+                        Papa.parse(csv, {
+                            header: true,
+                            skipEmptyLines: true,
+                            complete: (results) => {
+                                maintenanceData = results.data;
+                                console.log('Maintenance data loaded:', maintenanceData.length);
+                            }
+                        });
+                    });
+
+                dataLoaded = true;
+                document.getElementById('searchButton').disabled = false;
+            } catch (error) {
+                console.error('Error loading data:', error);
+                const resultsDiv = document.getElementById('results');
+                resultsDiv.innerHTML = '<div class="no-results">Error loading data. Please refresh the page.</div>';
+                resultsDiv.classList.add('visible');
+            }
+        }
+
+        // Search functionality
+        document.getElementById('searchButton').addEventListener('click', performSearch);
+        document.getElementById('searchInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                performSearch();
+            }
+        });
+
+        function performSearch() {
+            const searchTerm = document.getElementById('searchInput').value.trim().toLowerCase();
+            const resultsDiv = document.getElementById('results');
+
+            if (!searchTerm) {
+                resultsDiv.classList.remove('visible');
+                return;
+            }
+
+            if (!dataLoaded || certificationsData.length === 0) {
+                resultsDiv.innerHTML = '<div class="no-results">Data is still loading. Please wait a moment and try again.</div>';
+                resultsDiv.classList.add('visible');
+                return;
+            }
+
+            // Search for matching people
+            const matches = searchPeople(searchTerm);
+
+            if (matches.length === 0) {
+                resultsDiv.innerHTML = '<div class="no-results">No results found for "' + searchTerm + '"</div>';
+                resultsDiv.classList.add('visible');
+                return;
+            }
+
+            // Display results
+            displayResults(matches);
+            resultsDiv.classList.add('visible');
+        }
+
+        function searchPeople(searchTerm) {
+            const searchWords = searchTerm.split(' ').filter(w => w.length > 0);
+            const peopleMap = new Map();
+
+            certificationsData.forEach(cert => {
+                const firstName = (cert['First Name'] || '').toLowerCase();
+                const lastName = (cert['Last Name'] || '').toLowerCase();
+                const fullName = `${firstName} ${lastName}`.toLowerCase();
+                const email = (cert['User Email '] || cert['User Email'] || '').toLowerCase().trim();
+
+                // Check if search matches
+                const matches = searchWords.every(word => 
+                    fullName.includes(word) || firstName.includes(word) || lastName.includes(word)
+                );
+
+                if (matches) {
+                    if (!peopleMap.has(email)) {
+                        peopleMap.set(email, {
+                            firstName: cert['First Name'],
+                            lastName: cert['Last Name'],
+                            email: email,
+                            accountName: cert['Account Name'],
+                            accountType: cert['Account Type'],
+                            certifications: []
+                        });
+                    }
+                    
+                    peopleMap.get(email).certifications.push({
+                        name: cert['Certification Name'],
+                        completedOn: cert['Completed On']
+                    });
+                }
+            });
+
+            return Array.from(peopleMap.values());
+        }
+
+        function getMaintenanceStatus(email) {
+            const maintenance = maintenanceData.find(m => 
+                (m['User Email '] || m['User Email'] || '').toLowerCase().trim() === email
+            );
+
+            if (!maintenance) {
+                return {
+                    commercial: 'Unknown',
+                    platform: 'Unknown'
+                };
+            }
+
+            return {
+                commercial: maintenance['Commercial Compliance Status'] || 'Unknown',
+                platform: maintenance['Platform Compliance Status'] || 'Unknown'
+            };
+        }
+
+        function getStatusClass(status) {
+            const statusLower = status.toLowerCase();
+            if (statusLower.includes('compliant') && !statusLower.includes('non')) {
+                return 'status-compliant';
+            } else if (statusLower.includes('needs') || statusLower.includes('maintenance')) {
+                return 'status-needs-maintenance';
+            } else if (statusLower.includes('non') || statusLower.includes('overdue')) {
+                return 'status-non-compliant';
+            }
+            return 'status-needs-maintenance';
+        }
+
+        function displayResults(people) {
+            const resultsDiv = document.getElementById('results');
+            let html = '';
+
+            people.forEach(person => {
+                const maintenance = getMaintenanceStatus(person.email);
+                const organizationLabel = getOrganizationLabel(person.accountType);
+                const needsMaintenance = checkIfNeedsMaintenance(maintenance);
+                
+                html += `
+                    <div class="person-card">
+                        <div class="person-header">
+                            <div>
+                                <div class="person-name">${person.firstName} ${person.lastName}</div>
+                                ${organizationLabel ? `<div class="person-organization">${organizationLabel}: ${person.accountName}</div>` : ''}
+                                <div class="person-email">${person.email}</div>
+                            </div>
+                        </div>
+
+                        <div class="maintenance-status">
+                            <div class="status-title">📋 Maintenance Status for FY26</div>
+                            <div class="status-row">
+                                <strong>Commercial Certification:</strong>
+                                <span class="status-badge ${getStatusClass(maintenance.commercial)}">
+                                    ${maintenance.commercial}
+                                </span>
+                            </div>
+                            <div class="status-row">
+                                <strong>Platform Certification:</strong>
+                                <span class="status-badge ${getStatusClass(maintenance.platform)}">
+                                    ${maintenance.platform}
+                                </span>
+                            </div>
+                            <div class="maintenance-deadline">
+                                ⏰ <strong>Maintenance Window Closes:</strong> ${MAINTENANCE_DEADLINE}
+                            </div>
+                            ${needsMaintenance ? `
+                                <a href="https://up.ncino.com/student/catalog/list?category_ids=41860-ncino-product-certification-maintenance" 
+                                   target="_blank" 
+                                   class="maintenance-link">
+                                    Click here to access the maintenance course and exam
+                                </a>
+                            ` : ''}
+                        </div>
+
+                        <div class="certifications">
+                            <strong>Certifications Held:</strong>
+                            ${person.certifications.map(cert => {
+                                const badge = getBadgeForCertification(cert.name);
+                                return `
+                                <div class="cert-item">
+                                    ${badge ? `<img src="${badge}" alt="${cert.name}" class="cert-badge">` : ''}
+                                    <div class="cert-content">
+                                        <div class="cert-name">${cert.name}</div>
+                                        <div class="cert-details">
+                                            <div class="cert-date">
+                                                <strong>Completed:</strong> ${formatDate(cert.completedOn)}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `}).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+
+            resultsDiv.innerHTML = html;
+        }
+
+        function getOrganizationLabel(accountType) {
+            if (!accountType) return '';
+            if (accountType.toLowerCase().includes('si consulting partner')) {
+                return 'SI Partner Firm';
+            } else if (accountType.toLowerCase().includes('customer')) {
+                return 'Financial Institution';
+            }
+            return '';
+        }
+
+        function checkIfNeedsMaintenance(maintenance) {
+            const statusLower = (maintenance.commercial + ' ' + maintenance.platform).toLowerCase();
+            return statusLower.includes('needs') || 
+                   statusLower.includes('maintenance') || 
+                   statusLower.includes('non-compliant') || 
+                   statusLower.includes('overdue');
+        }
+
+        function getBadgeForCertification(certName) {
+            const nameLower = certName.toLowerCase();
+            if (nameLower.includes('commercial banking')) {
+                return badgeImages.commercial;
+            } else if (nameLower.includes('platform')) {
+                return badgeImages.platform;
+            } else if (nameLower.includes('business value')) {
+                return badgeImages.businessValue;
+            }
+            return null;
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return 'N/A';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+        }
+    </script>
+</body>
+</html>
